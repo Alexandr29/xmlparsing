@@ -1,105 +1,99 @@
 package com.nixsolutions;
 
 import org.xml.sax.Attributes;
-import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Stack;
 
 public class Handler extends DefaultHandler {
-    private StringBuilder stringBuilder = new StringBuilder();
+    private StringBuilder xml = new StringBuilder();
 
     public StringBuilder getStringBuilder() {
-        return stringBuilder;
+        return xml;
     }
-
-    int even = 0;
-    boolean printCharacters = false;
-    String causeIgnore = "";
-    private String lastStartTag = " ";
-    private String lastEndTag = "";
-    private String thisTag = " ";
+    private int even = 0;
+    private boolean printCharacters;
+    private String causeIgnore = "";
+    private String openTag = "open";
+    private String closeTag = "close";
     private boolean tagIsClosed;
-    private Map<String, Integer> countOfNodeElements;
-    private Map<String, String> nodeParent;
+    private Map<String, Integer> rootNodeCounter;
+    private Map<String, String> rootNode;
+
+    private Stack<String> tags = new Stack<>();
+    private Stack<Integer> tagCount = new Stack<>();
+
 
     @Override
+    public void startDocument() {
+        rootNodeCounter = new HashMap<>();
+        rootNode = new HashMap<>();
+        xml.append("<?xml version = \"1.0\" encoding = \"" +
+                "UTF-8" + "\"?>" + "\n");
+    }
+    @Override
     public void startElement(String uri, String localName, String qName, Attributes attributes) {
-        if (!thisTag.equals(qName) || !tagIsClosed) {
-
+        if (!openTag.equals(qName) || !tagIsClosed) {
             if (!tagIsClosed) {
-                countOfNodeElements.put(lastStartTag, 1);
-                nodeParent.put(qName, lastStartTag);
-            } else if (tagIsClosed) {
-                nodeParent.put(qName, nodeParent.get(lastEndTag));
-                int value = countOfNodeElements.get(nodeParent.get(lastEndTag));
-                countOfNodeElements.put(nodeParent.get(lastEndTag), ++value);
+                rootNodeCounter.put(openTag, 1);
+                rootNode.put(qName, openTag);
+            } else {
+                rootNode.put(qName, rootNode.get(closeTag));
+                int value = rootNodeCounter.get(rootNode.get(closeTag));
+                rootNodeCounter.put(rootNode.get(closeTag), ++value);
             }
-            lastStartTag = qName;
-
+            openTag = qName;
         } else {
-            nodeParent.put(qName, nodeParent.get(lastStartTag));
-            lastStartTag = qName;
-            int value = countOfNodeElements.get(nodeParent.get(qName));
-            countOfNodeElements.put(nodeParent.get(qName), ++value);
+            rootNode.put(qName, rootNode.get(openTag));
+            openTag = qName;
+            int value = rootNodeCounter.get(rootNode.get(qName));
+            rootNodeCounter.put(rootNode.get(qName), ++value);
         }
         tagIsClosed = false;
-        stringBuilder.append("\n");
-        even = countOfNodeElements.get(nodeParent.get(qName));
-
-        if (lastEndTag.equals(causeIgnore)) {
+        xml.append("\n");
+        even = rootNodeCounter.get(rootNode.get(qName));
+        if (closeTag.equals(causeIgnore)) {
             printCharacters = false;
         }
-        if ((even % 2) != 0 && !printCharacters) {
-            stringBuilder.append('<').append(qName);
 
+        if ((even % 2) != 0 && !printCharacters) {
+            xml.append('<').append(qName);
             if (attributes != null) {
                 for (int i = 0; i < attributes.getLength(); i++) {
-                    stringBuilder.append(" ").append(attributes.getQName(i))
+                    xml.append(" ").append(attributes.getQName(i))
                             .append("=\"").append(attributes.getValue(i))
                             .append('"');
                 }
             }
-            stringBuilder.append('>');
-
+            xml.append('>');
         } else if (!printCharacters) {
             printCharacters = true;
             causeIgnore = qName;
         }
-
     }
-
     @Override
     public void endElement(String uri, String localName, String qName) {
-        lastEndTag = qName;
-        if (!lastStartTag.equals(lastEndTag)) {
-            countOfNodeElements.remove(qName);
+        closeTag = qName;
+        if (!openTag.equals(closeTag)) {
+            rootNodeCounter.remove(qName);
         }
         tagIsClosed = true;
-        even = countOfNodeElements.get(nodeParent.get(qName));
-
+        even = rootNodeCounter.get(rootNode.get(qName));
         if (qName.equals(causeIgnore)) {
             printCharacters = false;
         }
         if ((even % 2) != 0 && !printCharacters) {
-            stringBuilder.append("</").append(qName).append('>').append(System.lineSeparator());
+            xml.append("</").append(qName).append('>'+"\n");
         }
     }
-
-    public void startDocument() {
-        countOfNodeElements = new HashMap<>();
-        nodeParent = new HashMap<>();
-        stringBuilder.append("<?xml version = \"1.0\" encoding = \"" +
-                "UTF-8" + "\"?>" + "\n");
-    }
-
-    public void characters(char characters[], int start, int length) {
+    @Override
+    public void characters(char[] characters, int start, int length) {
         if ((even % 2) != 0 && !printCharacters) {
             String characterData = (new String(characters, start, length)).trim();
-
-            if (characterData.indexOf("\n") < 0 && characterData.length() > 0) {
-                stringBuilder.append(characterData);
+            if (!characterData.contains("\n") && characterData.length() > 0) {
+                xml.append(characterData);
             }
         }
     }

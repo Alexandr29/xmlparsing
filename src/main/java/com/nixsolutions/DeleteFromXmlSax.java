@@ -11,6 +11,7 @@ import java.io.IOException;
 
 public class DeleteFromXmlSax {
     Handler handler = new Handler();
+    Sax handler2 = new Sax();
 
     public void parse(String pathToSourceXml, String pathToResultXml) {
         SAXParser parser;
@@ -30,11 +31,12 @@ public class DeleteFromXmlSax {
         filewriter.close();
     }
 
-    public static void main(String[] args)
-            throws IOException, SAXException, ParserConfigurationException {
-        DeleteFromXmlSax parser = new DeleteFromXmlSax();
-        parser.parse("src/main/resources/source.xml",
-                "src/main/resources/result.xml");
+    public static void main(String[] args) throws Exception {
+//        DeleteFromXmlSax parser = new DeleteFromXmlSax();
+//        parser.parse("src/main/resources/source.xml",
+//                "src/main/resources/result.xml");
+//Sax sax = new Sax();
+//sax.parse();
     }
 
 }
